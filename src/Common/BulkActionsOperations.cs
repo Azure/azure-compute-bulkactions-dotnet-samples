@@ -155,6 +155,11 @@ public static class BulkActionsOperations
         }
 
         Console.WriteLine($"[{operationLabel}] {operationIds.Count} operation(s) accepted. Polling for completion...");
+        foreach (string operationId in operationIds)
+        {
+            Console.WriteLine($"[{operationLabel}] accepted operationId={operationId}");
+        }
+
         Dictionary<string, ComputeBulkOperationDetails> completed =
             await HelperMethods.PollOperationStatus(resourceGroup, operationIds, operationLabel);
 
