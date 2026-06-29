@@ -23,6 +23,7 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
+        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Operation IDs whose status to query. These are returned when a Start/Deallocate/Delete/Hibernate

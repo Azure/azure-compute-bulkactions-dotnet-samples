@@ -24,6 +24,7 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
+        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Execution parameters including the retry policy applied to each operation on failure.
@@ -31,14 +32,12 @@ public static class Program
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
-                // Number of retries on failure: range 0-7.
-                RetryCount = 3,
                 // Retry window in minutes: range 5-120.
                 RetryWindowInMinutes = 45
             }
         };
 
-        // Virtual machine resource identifiers to start. All VMs must be in the same subscription.
+        // Virtual machine resource identifiers to start. All VMs must be in the same subscription and resourceGroup.
         List<ResourceIdentifier> resourceIds = HelperMethods.BuildVmResourceIds(
             subscriptionId,
             resourceGroupName,

@@ -9,6 +9,9 @@ namespace UtilityMethods;
 /// Thin wrappers around the six <c>Azure.ResourceManager.Compute.BulkActions</c> endpoints
 /// (extension methods on <see cref="ResourceGroupResource"/>). The execute-style operations
 /// submit the request, collect the accepted operation IDs, and poll until completion.
+///
+/// Each operation executes in the region of the supplied <see cref="ResourceGroupResource"/>;
+/// the operation location is derived from the resource group and is not specified separately.
 /// </summary>
 public static class BulkActionsOperations
 {
@@ -80,6 +83,8 @@ public static class BulkActionsOperations
 
     /// <summary>
     /// Cancels in-flight operations by their operation IDs via <c>BulkCancelOperations</c>.
+    /// Cancellation is best-effort: an operation that is already in progress cannot be cancelled —
+    /// only operations that are still pending are eligible for cancellation.
     /// </summary>
     public static async Task BulkCancelOperationsAsync(
         ResourceGroupResource resourceGroup,

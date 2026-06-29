@@ -32,6 +32,7 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
+        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Execution parameters including the retry policy applied to each operation on failure.
@@ -39,7 +40,6 @@ public static class Program
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
-                RetryCount = 3,
                 RetryWindowInMinutes = 45
             }
         };

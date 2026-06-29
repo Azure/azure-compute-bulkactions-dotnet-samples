@@ -18,8 +18,8 @@ The retry policy is an **optional** configuration specified in the `ExecutionPar
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `RetryCount` | int | No | The number of retry attempts on failure. **Range: 0–7.** |
-| `RetryWindowInMinutes` | int | No | The maximum duration (in minutes) during which retries are allowed, measured from when the operation first starts executing. **Range: 5–120.** |
+| `RetryCount` | int | No | The number of retry attempts on failure. **Range: 0–7.** _Not recommended — prefer `RetryWindowInMinutes` to bound retries by time instead of a fixed attempt count._ |
+| `RetryWindowInMinutes` | int | No | The maximum duration (in minutes) during which retries are allowed, measured from when the operation first starts executing. **Range: 5–120.** _Recommended for use in RetryPolicy_ |
 | `OnFailureAction` | `ComputeBulkOperationType` | No | The fallback action to perform when all retry attempts are exhausted. See [Fallback (OnFailureAction)](#fallback-onfailureaction) below. |
 
 ### How retries work
@@ -43,7 +43,6 @@ var executionParams = new ScheduledActionExecutionParameterDetail()
 {
     RetryPolicy = new BulkOperationRetryPolicy()
     {
-        RetryCount = 3,
         RetryWindowInMinutes = 45
     }
 };
