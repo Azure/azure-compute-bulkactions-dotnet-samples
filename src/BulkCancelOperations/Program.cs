@@ -23,10 +23,12 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
+        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Operation IDs to cancel. These are returned when a Start/Deallocate/Delete/Hibernate
         // operation is submitted, and can be cancelled while the operation is still pending.
+        // Cancellation is best-effort: if the operation is already in progress it cannot be cancelled.
         var operationIds = new[]
         {
             "00000000-0000-0000-0000-000000000001",
