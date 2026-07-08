@@ -80,6 +80,7 @@ public static class HelperMethods
     /// </summary>
     public static async Task<Dictionary<string, ComputeBulkOperationDetails>> PollOperationStatus(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         HashSet<string> operationIds,
         string operationLabel)
     {
@@ -102,7 +103,7 @@ public static class HelperMethods
             }
 
             GetBulkOperationStatusResult status = await resourceGroup.BulkGetOperationsStatusAsync(
-                new GetBulkOperationStatusContent(pending));
+                location, new GetBulkOperationStatusContent(pending));
 
             foreach (ComputeBulkOperationResult result in status.Results)
             {
@@ -144,10 +145,10 @@ public static class HelperMethods
     /// <summary>
     /// Returns <c>true</c> when the operation state is terminal and no further polling is needed.
     /// </summary>
-    public static bool IsTerminal(ScheduledActionOperationState? state)
+    public static bool IsTerminal(BulkActionOperationState? state)
     {
-        return state == ScheduledActionOperationState.Succeeded
-            || state == ScheduledActionOperationState.Failed
-            || state == ScheduledActionOperationState.Cancelled;
+        return state == BulkActionOperationState.Succeeded
+            || state == BulkActionOperationState.Failed
+            || state == BulkActionOperationState.Cancelled;
     }
 }

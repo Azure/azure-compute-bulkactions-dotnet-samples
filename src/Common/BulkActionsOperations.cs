@@ -10,8 +10,9 @@ namespace UtilityMethods;
 /// (extension methods on <see cref="ResourceGroupResource"/>). The execute-style operations
 /// submit the request, collect the accepted operation IDs, and poll until completion.
 ///
-/// Each operation executes in the region of the supplied <see cref="ResourceGroupResource"/>;
-/// the operation location is derived from the resource group and is not specified separately.
+/// Each operation targets an explicit <see cref="AzureLocation"/> supplied by the caller. A
+/// resource group's location can differ from the location of the resources it contains, so the
+/// operation location must be provided separately rather than inferred from the resource group.
 /// </summary>
 public static class BulkActionsOperations
 {
@@ -20,14 +21,15 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task<Dictionary<string, ComputeBulkOperationDetails>> BulkStartOperationAsync(
         ResourceGroupResource resourceGroup,
-        ScheduledActionExecutionParameterDetail executionParameters,
+        AzureLocation location,
+        BulkActionExecutionParameterDetail executionParameters,
         List<ResourceIdentifier> resourceIds)
     {
         Console.WriteLine($"[start] Submitting BulkStartOperation for {resourceIds.Count} resource(s)...");
         StartResourceOperationResult response = await resourceGroup.BulkStartOperationAsync(
-            new ExecuteStartContent(executionParameters, new UserRequestResources(resourceIds)));
+            location, new ExecuteStartContent(executionParameters, new UserRequestResources(resourceIds)));
 
-        return await SubmitResultToCompletionAsync(resourceGroup, response.Results, "start");
+        return await SubmitResultToCompletionAsync(resourceGroup, location, response.Results, "start");
     }
 
     /// <summary>
@@ -35,14 +37,15 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task<Dictionary<string, ComputeBulkOperationDetails>> BulkDeallocateOperationAsync(
         ResourceGroupResource resourceGroup,
-        ScheduledActionExecutionParameterDetail executionParameters,
+        AzureLocation location,
+        BulkActionExecutionParameterDetail executionParameters,
         List<ResourceIdentifier> resourceIds)
     {
         Console.WriteLine($"[deallocate] Submitting BulkDeallocateOperation for {resourceIds.Count} resource(s)...");
         DeallocateResourceOperationResult response = await resourceGroup.BulkDeallocateOperationAsync(
-            new ExecuteDeallocateContent(executionParameters, new UserRequestResources(resourceIds)));
+            location, new ExecuteDeallocateContent(executionParameters, new UserRequestResources(resourceIds)));
 
-        return await SubmitResultToCompletionAsync(resourceGroup, response.Results, "deallocate");
+        return await SubmitResultToCompletionAsync(resourceGroup, location, response.Results, "deallocate");
     }
 
     /// <summary>
@@ -50,14 +53,15 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task<Dictionary<string, ComputeBulkOperationDetails>> BulkHibernateOperationAsync(
         ResourceGroupResource resourceGroup,
-        ScheduledActionExecutionParameterDetail executionParameters,
+        AzureLocation location,
+        BulkActionExecutionParameterDetail executionParameters,
         List<ResourceIdentifier> resourceIds)
     {
         Console.WriteLine($"[hibernate] Submitting BulkHibernateOperation for {resourceIds.Count} resource(s)...");
         HibernateResourceOperationResult response = await resourceGroup.BulkHibernateOperationAsync(
-            new ExecuteHibernateContent(executionParameters, new UserRequestResources(resourceIds)));
+            location, new ExecuteHibernateContent(executionParameters, new UserRequestResources(resourceIds)));
 
-        return await SubmitResultToCompletionAsync(resourceGroup, response.Results, "hibernate");
+        return await SubmitResultToCompletionAsync(resourceGroup, location, response.Results, "hibernate");
     }
 
     /// <summary>
@@ -66,19 +70,20 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task<Dictionary<string, ComputeBulkOperationDetails>> BulkDeleteOperationAsync(
         ResourceGroupResource resourceGroup,
-        ScheduledActionExecutionParameterDetail executionParameters,
+        AzureLocation location,
+        BulkActionExecutionParameterDetail executionParameters,
         List<ResourceIdentifier> resourceIds,
         bool forceDeletion = false)
     {
         Console.WriteLine(
             $"[delete] Submitting BulkDeleteOperation for {resourceIds.Count} resource(s) (forceDeletion={forceDeletion})...");
         DeleteResourceOperationResult response = await resourceGroup.BulkDeleteOperationAsync(
-            new ExecuteDeleteContent(executionParameters, new UserRequestResources(resourceIds))
+            location, new ExecuteDeleteContent(executionParameters, new UserRequestResources(resourceIds))
             {
                 IsForceDeletion = forceDeletion
             });
 
-        return await SubmitResultToCompletionAsync(resourceGroup, response.Results, "delete");
+        return await SubmitResultToCompletionAsync(resourceGroup, location, response.Results, "delete");
     }
 
     /// <summary>
@@ -88,13 +93,14 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task BulkCancelOperationsAsync(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         IEnumerable<string> operationIds)
     {
         var ids = operationIds.ToList();
         Console.WriteLine($"[cancel] Submitting BulkCancelOperations for {ids.Count} operation(s)...");
 
         CancelBulkOperationsResult result = await resourceGroup.BulkCancelOperationsAsync(
-            new CancelBulkOperationsContent(ids));
+            location, new CancelBulkOperationsContent(ids));
 
         foreach (ComputeBulkOperationResult operationResult in result.Results)
         {
@@ -115,19 +121,20 @@ public static class BulkActionsOperations
     /// </summary>
     public static async Task<GetBulkOperationStatusResult> BulkGetOperationsStatusAsync(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         IEnumerable<string> operationIds)
     {
         var ids = operationIds.ToList();
         Console.WriteLine($"[status] Submitting BulkGetOperationsStatus for {ids.Count} operation(s)...");
 
         GetBulkOperationStatusResult result = await resourceGroup.BulkGetOperationsStatusAsync(
-            new GetBulkOperationStatusContent(ids));
+            location, new GetBulkOperationStatusContent(ids));
 
         foreach (ComputeBulkOperationResult operationResult in result.Results)
         {
             ComputeBulkOperationDetails? operation = operationResult.Operation;
             Console.WriteLine(
-                $"[status] operationId={operation?.OperationId}, resourceId={operation?.ResourceId}, opType={operation?.OperationType}, state={operation?.State}");
+                $"[status] operationId={operation?.OperationId}, resourceId={operation?.ResourceId}, opKind={operation?.OperationKind}, state={operation?.State}");
 
             if (operation?.Error is not null)
             {
@@ -139,7 +146,7 @@ public static class BulkActionsOperations
             {
                 ComputeBulkFallbackOperationInfo fallback = operation.FallbackOperationInfo;
                 Console.WriteLine(
-                    $"[status] fallback lastOpType={fallback.LastOperationType}, status={fallback.Status}");
+                    $"[status] fallback lastOpKind={fallback.LastOperationKind}, status={fallback.Status}");
             }
         }
 
@@ -148,6 +155,7 @@ public static class BulkActionsOperations
 
     private static async Task<Dictionary<string, ComputeBulkOperationDetails>> SubmitResultToCompletionAsync(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         IEnumerable<ComputeBulkOperationResult> results,
         string operationLabel)
     {
@@ -166,7 +174,7 @@ public static class BulkActionsOperations
         }
 
         Dictionary<string, ComputeBulkOperationDetails> completed =
-            await HelperMethods.PollOperationStatus(resourceGroup, operationIds, operationLabel);
+            await HelperMethods.PollOperationStatus(resourceGroup, location, operationIds, operationLabel);
 
         PrintSummary(completed, operationLabel);
         return completed;

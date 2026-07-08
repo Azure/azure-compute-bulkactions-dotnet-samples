@@ -6,7 +6,7 @@ This guide explains how to configure retry and fallback behavior for VM operatio
 
 When you submit a VM operation (Start, Deallocate, Hibernate, or Delete), the operation may encounter transient errors from the underlying compute platform. The **Retry Policy** controls how the system automatically retries failed operations, and the **Fallback (`OnFailureAction`)** provides a safety net when retries are exhausted.
 
-The retry/fallback configuration is supplied via the `RetryPolicy` property of `ScheduledActionExecutionParameterDetail`, using the `BulkOperationRetryPolicy` type.
+The retry/fallback configuration is supplied via the `RetryPolicy` property of `BulkActionExecutionParameterDetail`, using the `BulkOperationRetryPolicy` type.
 
 ---
 
@@ -20,7 +20,7 @@ The retry policy is an **optional** configuration specified in the `ExecutionPar
 |-------|------|----------|-------------|
 | `RetryCount` | int | No | The number of retry attempts on failure. **Range: 0–7.** _Not recommended — prefer `RetryWindowInMinutes` to bound retries by time instead of a fixed attempt count._ |
 | `RetryWindowInMinutes` | int | No | The maximum duration (in minutes) during which retries are allowed, measured from when the operation first starts executing. **Range: 5–120.** _Recommended for use in RetryPolicy_ |
-| `OnFailureAction` | `ComputeBulkOperationType` | No | The fallback action to perform when all retry attempts are exhausted. See [Fallback (OnFailureAction)](#fallback-onfailureaction) below. |
+| `OnFailureAction` | `ComputeBulkOperationKind` | No | The fallback action to perform when all retry attempts are exhausted. See [Fallback (OnFailureAction)](#fallback-onfailureaction) below. |
 
 ### How retries work
 
@@ -39,7 +39,7 @@ The retry policy is an **optional** configuration specified in the `ExecutionPar
 ### Example: Start operation with retry policy
 
 ```csharp
-var executionParams = new ScheduledActionExecutionParameterDetail()
+var executionParams = new BulkActionExecutionParameterDetail()
 {
     RetryPolicy = new BulkOperationRetryPolicy()
     {
@@ -48,7 +48,7 @@ var executionParams = new ScheduledActionExecutionParameterDetail()
 };
 
 StartResourceOperationResult result = await resourceGroup.BulkStartOperationAsync(
-    new ExecuteStartContent(executionParams, new UserRequestResources(resourceIds)));
+    location, new ExecuteStartContent(executionParams, new UserRequestResources(resourceIds)));
 ```
 
 ### Default behavior (no retry)
@@ -59,7 +59,7 @@ By default, if you do not provide a `RetryPolicy` — or provide one without a m
 
 ## Fallback (OnFailureAction)
 
-The fallback action (`OnFailureAction`) provides a safety net when an operation fails and all retry attempts have been exhausted. Instead of simply failing, the system can perform an alternative operation to leave the VM in a known, safe state. The value is a `ComputeBulkOperationType`.
+The fallback action (`OnFailureAction`) provides a safety net when an operation fails and all retry attempts have been exhausted. Instead of simply failing, the system can perform an alternative operation to leave the VM in a known, safe state. The value is a `ComputeBulkOperationKind`.
 
 ### Supported fallback actions by operation type
 
@@ -67,8 +67,8 @@ Not all operations support fallback actions. The table below shows which fallbac
 
 | Operation Type | Supported `OnFailureAction` | Fallback Behavior |
 |----------------|----------------------------|-------------------|
-| **Start** | `ComputeBulkOperationType.Start` | If a resume (start on a hibernated VM) fails after all retries, the system performs a clean boot — bringing the VM back online from scratch. The hibernated session state is not preserved. |
-| **Hibernate** | `ComputeBulkOperationType.Deallocate` | If hibernate fails after all retries, the system deallocates the VM instead. The VM is deallocated (not hibernated), but resources are released. |
+| **Start** | `ComputeBulkOperationKind.Start` | If a resume (start on a hibernated VM) fails after all retries, the system performs a clean boot — bringing the VM back online from scratch. The hibernated session state is not preserved. |
+| **Hibernate** | `ComputeBulkOperationKind.Deallocate` | If hibernate fails after all retries, the system deallocates the VM instead. The VM is deallocated (not hibernated), but resources are released. |
 | **Deallocate** | _Not supported_ | Deallocate operations do not support fallback actions. |
 | **Delete** | _Not supported_ | Delete operations do not support fallback actions. |
 
@@ -94,17 +94,17 @@ The fallback action is the **last resort** — it only executes after all retrie
 ### Example: Start with clean-boot fallback
 
 ```csharp
-var executionParams = new ScheduledActionExecutionParameterDetail()
+var executionParams = new BulkActionExecutionParameterDetail()
 {
     RetryPolicy = new BulkOperationRetryPolicy()
     {
         RetryWindowInMinutes = 30,
-        OnFailureAction = ComputeBulkOperationType.Start
+        OnFailureAction = ComputeBulkOperationKind.Start
     }
 };
 
 StartResourceOperationResult result = await resourceGroup.BulkStartOperationAsync(
-    new ExecuteStartContent(executionParams, new UserRequestResources(resourceIds)));
+    location, new ExecuteStartContent(executionParams, new UserRequestResources(resourceIds)));
 ```
 
 > 📝 **SDK sample:** See [StartWithCleanBootFallback.cs](StartWithCleanBootFallback.cs) for a complete .NET example including status polling and fallback interpretation.
@@ -112,17 +112,17 @@ StartResourceOperationResult result = await resourceGroup.BulkStartOperationAsyn
 ### Example: Hibernate with Deallocate fallback
 
 ```csharp
-var executionParams = new ScheduledActionExecutionParameterDetail()
+var executionParams = new BulkActionExecutionParameterDetail()
 {
     RetryPolicy = new BulkOperationRetryPolicy()
     {
         RetryWindowInMinutes = 30,
-        OnFailureAction = ComputeBulkOperationType.Deallocate
+        OnFailureAction = ComputeBulkOperationKind.Deallocate
     }
 };
 
 HibernateResourceOperationResult result = await resourceGroup.BulkHibernateOperationAsync(
-    new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
+    location, new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
 ```
 
 > 📝 **SDK sample:** See [HibernateWithDeallocateFallback.cs](HibernateWithDeallocateFallback.cs) and [HibernateFallbackOnlyNoRetry.cs](HibernateFallbackOnlyNoRetry.cs).
@@ -137,18 +137,18 @@ When you query the status of an operation via `BulkGetOperationsStatus`, the `Co
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `State` | `ScheduledActionOperationState` | The current state (e.g., `Succeeded`, `Failed`, `Cancelled`). |
+| `State` | `BulkActionOperationState` | The current state (e.g., `Succeeded`, `Failed`, `Cancelled`). |
 | `RetryPolicy` | `BulkOperationRetryPolicy` | The retry policy that was applied to this operation. |
 | `Error` | `ComputeBulkOperationError` | The error from the primary operation, if it failed. |
-| `FallbackOperationInfo` | `ComputeBulkFallbackOperationInfo` | Present only if a fallback was executed. Contains `LastOperationType`, `Status`, and `Error`. |
+| `FallbackOperationInfo` | `ComputeBulkFallbackOperationInfo` | Present only if a fallback was executed. Contains `LastOperationKind`, `Status`, and `Error`. |
 
 ### Interpreting a fallback result
 
 ```csharp
-if (details.State == ScheduledActionOperationState.Failed && details.FallbackOperationInfo is not null)
+if (details.State == BulkActionOperationState.Failed && details.FallbackOperationInfo is not null)
 {
     ComputeBulkFallbackOperationInfo fallback = details.FallbackOperationInfo;
-    Console.WriteLine($"Fallback {fallback.LastOperationType}: Status = {fallback.Status}");
+    Console.WriteLine($"Fallback {fallback.LastOperationKind}: Status = {fallback.Status}");
 
     if (fallback.Error is not null)
     {
@@ -163,7 +163,7 @@ In this example, the original operation failed after exhausting all retries, the
 
 ## Running the samples
 
-The `OperationFallback` project is configured through `appsettings.json`. Set the `Scenario` field to one of:
+The `OperationFallback` project is configured through `appsettings.json`. Set the `Location` field to the region where your VMs reside, and set the `Scenario` field to one of:
 
 | Scenario | Demonstrates |
 |----------|--------------|

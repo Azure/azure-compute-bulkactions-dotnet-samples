@@ -10,28 +10,29 @@ namespace OperationFallback;
 /// Hibernate with Deallocate fallback.
 ///
 /// If the Hibernate operation fails after all retries, setting OnFailureAction to
-/// <see cref="ComputeBulkOperationType.Deallocate"/> tells the system to deallocate the VM
+/// <see cref="ComputeBulkOperationKind.Deallocate"/> tells the system to deallocate the VM
 /// instead — ensuring resources are released even when hibernation is not possible.
 /// </summary>
 public static class HibernateWithDeallocateFallback
 {
     public static async Task RunAsync(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         List<ResourceIdentifier> resourceIds)
     {
         Console.WriteLine("[Scenario] Hibernate with Deallocate fallback\n");
 
-        var executionParams = new ScheduledActionExecutionParameterDetail()
+        var executionParams = new BulkActionExecutionParameterDetail()
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
                 RetryWindowInMinutes = 30,
-                OnFailureAction = ComputeBulkOperationType.Deallocate
+                OnFailureAction = ComputeBulkOperationKind.Deallocate
             }
         };
 
         HibernateResourceOperationResult result = await resourceGroup.BulkHibernateOperationAsync(
-            new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
+            location, new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
 
         var operationIds = HelperMethods.GetPollableOperationIds(result.Results);
 
@@ -43,7 +44,7 @@ public static class HibernateWithDeallocateFallback
 
         Console.WriteLine($"[Submit] {operationIds.Count} operation(s) submitted. Polling for results...\n");
         Dictionary<string, ComputeBulkOperationDetails> completedOperations =
-            await HelperMethods.PollOperationStatus(resourceGroup, operationIds, "hibernate");
+            await HelperMethods.PollOperationStatus(resourceGroup, location, operationIds, "hibernate");
 
         FallbackResultPrinter.Print(completedOperations, successMessage: "Hibernate succeeded — no fallback needed.",
             fallbackSuccessMessage: "Succeeded — VM was deallocated.");

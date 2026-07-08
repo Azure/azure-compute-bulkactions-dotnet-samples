@@ -8,11 +8,11 @@ When you submit a Start, Deallocate, Delete, or Hibernate operation, the respons
 
 ## Endpoint
 
-`BulkGetOperationsStatus` / `BulkGetOperationsStatusAsync` is an extension method on `ResourceGroupResource`:
+`BulkGetOperationsStatus` / `BulkGetOperationsStatusAsync` is an extension method on `ResourceGroupResource`. It takes an explicit `AzureLocation` identifying the region where the operations were submitted:
 
 ```csharp
 GetBulkOperationStatusResult result = await resourceGroup.BulkGetOperationsStatusAsync(
-    new GetBulkOperationStatusContent(operationIds));
+    location, new GetBulkOperationStatusContent(operationIds));
 ```
 
 | Member | Type | Description |
@@ -36,13 +36,13 @@ Each `ComputeBulkOperationResult` exposes:
 |-------|------|-------------|
 | `OperationId` | `string` | The operation identifier. |
 | `ResourceId` | `ResourceIdentifier` | The targeted VM. |
-| `OperationType` | `ComputeBulkOperationType` | The operation type (Start, Deallocate, Delete, Hibernate). |
-| `State` | `ScheduledActionOperationState` | Current state. Terminal states are `Succeeded`, `Failed`, `Cancelled`. |
+| `OperationKind` | `ComputeBulkOperationKind` | The operation kind (Start, Deallocate, Delete, Hibernate). |
+| `State` | `BulkActionOperationState` | Current state. Terminal states are `Succeeded`, `Failed`, `Cancelled`. |
 | `Error` | `ComputeBulkOperationError` | Populated when the operation failed. |
 | `FallbackOperationInfo` | `ComputeBulkFallbackOperationInfo` | Populated when an `OnFailureAction` fallback ran. |
 | `RetryPolicy` | `BulkOperationRetryPolicy` | The retry policy that was applied. |
 
-### Operation states (`ScheduledActionOperationState`)
+### Operation states (`BulkActionOperationState`)
 
 `PendingScheduling`, `Scheduled`, `PendingExecution`, `Executing`, `Succeeded`, `Failed`, `Cancelled`, `Blocked`, `Unknown`.
 
@@ -53,7 +53,7 @@ The shared `HelperMethods.PollOperationStatus` helper polls until all operations
 ```csharp
 HashSet<string> operationIds = HelperMethods.GetPollableOperationIds(result.Results);
 Dictionary<string, ComputeBulkOperationDetails> completed =
-    await HelperMethods.PollOperationStatus(resourceGroup, operationIds, "start");
+    await HelperMethods.PollOperationStatus(resourceGroup, location, operationIds, "start");
 ```
 
 ## Run
