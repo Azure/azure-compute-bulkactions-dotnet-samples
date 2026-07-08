@@ -16,6 +16,10 @@ public static class Program
         // ResourceGroupName: The resource group under which the operations were submitted (dummy value).
         const string resourceGroupName = "demo-rg";
 
+        // Location: The Azure region where the operations were submitted (dummy value).
+        // A resource group's location can differ from its resources', so the operation location is supplied explicitly.
+        AzureLocation location = "eastus";
+
         // Credential: The Azure credential used to authenticate the request.
         TokenCredential cred = new DefaultAzureCredential();
 
@@ -23,7 +27,6 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
-        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Operation IDs to cancel. These are returned when a Start/Deallocate/Delete/Hibernate
@@ -35,6 +38,6 @@ public static class Program
             "00000000-0000-0000-0000-000000000002",
         };
 
-        await BulkActionsOperations.BulkCancelOperationsAsync(resourceGroupResource, operationIds);
+        await BulkActionsOperations.BulkCancelOperationsAsync(resourceGroupResource, location, operationIds);
     }
 }

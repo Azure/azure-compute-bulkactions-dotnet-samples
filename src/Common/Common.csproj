@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.ResourceManager.Compute.BulkActions" Version="1.0.0" />
+    <PackageReference Include="Azure.ResourceManager.Compute.BulkActions" Version="1.1.0" />
   </ItemGroup>
 
 </Project>

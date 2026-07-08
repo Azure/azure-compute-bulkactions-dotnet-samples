@@ -20,6 +20,10 @@ public static class Program
         // Whether to request a force delete of the virtual machines.
         const bool forceDeletion = false;
 
+        // Location: The Azure region where the virtual machines reside and where the bulk operation runs (dummy value).
+        // A resource group's location can differ from its resources', so the operation location is supplied explicitly.
+        AzureLocation location = "eastus";
+
         // Credential: The Azure credential used to authenticate the request.
         TokenCredential cred = new DefaultAzureCredential();
 
@@ -27,11 +31,10 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
-        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Execution parameters including the retry policy applied to each operation on failure.
-        var executionParams = new ScheduledActionExecutionParameterDetail()
+        var executionParams = new BulkActionExecutionParameterDetail()
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
@@ -46,6 +49,6 @@ public static class Program
             resourceGroupName,
             new[] { "dummy-vm-600", "dummy-vm-611", "dummy-vm-612" });
 
-        await BulkActionsOperations.BulkDeleteOperationAsync(resourceGroupResource, executionParams, resourceIds, forceDeletion);
+        await BulkActionsOperations.BulkDeleteOperationAsync(resourceGroupResource, location, executionParams, resourceIds, forceDeletion);
     }
 }

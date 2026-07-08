@@ -16,20 +16,21 @@ public static class HibernateFallbackOnlyNoRetry
 {
     public static async Task RunAsync(
         ResourceGroupResource resourceGroup,
+        AzureLocation location,
         List<ResourceIdentifier> resourceIds)
     {
         Console.WriteLine("[Scenario] Hibernate with Deallocate fallback (no retries)\n");
 
-        var executionParams = new ScheduledActionExecutionParameterDetail()
+        var executionParams = new BulkActionExecutionParameterDetail()
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
-                OnFailureAction = ComputeBulkOperationType.Deallocate
+                OnFailureAction = ComputeBulkOperationKind.Deallocate
             }
         };
 
         HibernateResourceOperationResult result = await resourceGroup.BulkHibernateOperationAsync(
-            new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
+            location, new ExecuteHibernateContent(executionParams, new UserRequestResources(resourceIds)));
 
         var operationIds = HelperMethods.GetPollableOperationIds(result.Results);
 
@@ -41,7 +42,7 @@ public static class HibernateFallbackOnlyNoRetry
 
         Console.WriteLine($"[Submit] {operationIds.Count} operation(s) submitted. Polling for results...\n");
         Dictionary<string, ComputeBulkOperationDetails> completedOperations =
-            await HelperMethods.PollOperationStatus(resourceGroup, operationIds, "hibernate");
+            await HelperMethods.PollOperationStatus(resourceGroup, location, operationIds, "hibernate");
 
         FallbackResultPrinter.Print(completedOperations, successMessage: "Hibernate succeeded — no fallback needed.",
             fallbackSuccessMessage: "Succeeded — VM was deallocated (no retries attempted).");

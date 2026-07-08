@@ -17,13 +17,13 @@ internal static class FallbackResultPrinter
         {
             Console.WriteLine($"[Result] Operation {opId}: State = {details.State}");
 
-            if (details.State == ScheduledActionOperationState.Succeeded)
+            if (details.State == BulkActionOperationState.Succeeded)
             {
                 Console.WriteLine($"[OK] {successMessage}");
                 continue;
             }
 
-            if (details.State != ScheduledActionOperationState.Failed)
+            if (details.State != BulkActionOperationState.Failed)
             {
                 continue;
             }
@@ -40,9 +40,9 @@ internal static class FallbackResultPrinter
             }
 
             ComputeBulkFallbackOperationInfo fallback = details.FallbackOperationInfo;
-            Console.WriteLine($"[Fallback] {fallback.LastOperationType}: Status = {fallback.Status}");
+            Console.WriteLine($"[Fallback] {fallback.LastOperationKind}: Status = {fallback.Status}");
 
-            if (string.Equals(fallback.Status, ScheduledActionOperationState.Succeeded.ToString(), StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(fallback.Status, BulkActionOperationState.Succeeded.ToString(), StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine($"[Fallback] [OK] {fallbackSuccessMessage}");
             }

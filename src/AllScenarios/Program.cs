@@ -25,6 +25,10 @@ public static class Program
         // ResourceGroupName: The resource group under which the virtual machines are located (dummy value).
         const string resourceGroupName = "demo-rg";
 
+        // Location: The Azure region where the virtual machines reside and where the bulk operations run (dummy value).
+        // A resource group's location can differ from its resources', so the operation location is supplied explicitly.
+        AzureLocation location = "eastus";
+
         // Credential: The Azure credential used to authenticate the request.
         TokenCredential cred = new DefaultAzureCredential();
 
@@ -32,11 +36,10 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
-        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         // Execution parameters including the retry policy applied to each operation on failure.
-        var executionParams = new ScheduledActionExecutionParameterDetail()
+        var executionParams = new BulkActionExecutionParameterDetail()
         {
             RetryPolicy = new BulkOperationRetryPolicy()
             {
@@ -51,19 +54,19 @@ public static class Program
 
         // Step 1: Start the virtual machines.
         Console.WriteLine("=== Step 1: BulkStartOperation ===");
-        await BulkActionsOperations.BulkStartOperationAsync(resourceGroupResource, executionParams, resourceIds);
+        await BulkActionsOperations.BulkStartOperationAsync(resourceGroupResource, location, executionParams, resourceIds);
 
         // Step 2: Hibernate the virtual machines.
         Console.WriteLine("\n=== Step 2: BulkHibernateOperation ===");
-        await BulkActionsOperations.BulkHibernateOperationAsync(resourceGroupResource, executionParams, resourceIds);
+        await BulkActionsOperations.BulkHibernateOperationAsync(resourceGroupResource, location, executionParams, resourceIds);
 
         // Step 3: Deallocate the virtual machines.
         Console.WriteLine("\n=== Step 3: BulkDeallocateOperation ===");
-        await BulkActionsOperations.BulkDeallocateOperationAsync(resourceGroupResource, executionParams, resourceIds);
+        await BulkActionsOperations.BulkDeallocateOperationAsync(resourceGroupResource, location, executionParams, resourceIds);
 
         // Step 4: Delete the virtual machines.
         Console.WriteLine("\n=== Step 4: BulkDeleteOperation ===");
-        await BulkActionsOperations.BulkDeleteOperationAsync(resourceGroupResource, executionParams, resourceIds, forceDeletion: false);
+        await BulkActionsOperations.BulkDeleteOperationAsync(resourceGroupResource, location, executionParams, resourceIds, forceDeletion: false);
 
         Console.WriteLine("\nAll scenarios completed.");
     }

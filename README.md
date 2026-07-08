@@ -6,7 +6,7 @@ The samples are intentionally small and focused. Each project folder represents 
 
 ## Available endpoints
 
-All operations are extension methods on `ResourceGroupResource` from the `Azure.ResourceManager.Compute.BulkActions` package:
+All operations are extension methods on `ResourceGroupResource` from the `Azure.ResourceManager.Compute.BulkActions` package. Every endpoint takes an explicit `AzureLocation` argument identifying the region where the operation runs — a resource group's location can differ from the location of the resources it contains, so the location is supplied by the caller rather than inferred from the resource group:
 
 | Endpoint (sync / async) | Request content | Result type |
 |---|---|---|

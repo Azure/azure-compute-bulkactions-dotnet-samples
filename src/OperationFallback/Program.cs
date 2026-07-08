@@ -28,6 +28,8 @@ public static class Program
         var settings = config.GetSection("Settings");
         string subscriptionId = settings["SubscriptionId"] ?? throw new InvalidOperationException("SubscriptionId is required in appsettings.json");
         string resourceGroupName = settings["ResourceGroupName"] ?? throw new InvalidOperationException("ResourceGroupName is required in appsettings.json");
+        // A resource group's location can differ from its resources', so the operation location is supplied explicitly.
+        AzureLocation location = settings["Location"] ?? throw new InvalidOperationException("Location is required in appsettings.json");
         var vmNames = settings.GetSection("VmNames").GetChildren().Select(c => c.Value!).ToArray();
         if (vmNames.Length == 0) throw new InvalidOperationException("VmNames is required in appsettings.json");
         string scenario = settings["Scenario"] ?? "HibernateFallback";
@@ -36,7 +38,6 @@ public static class Program
         ArmClient client = new(cred);
 
         SubscriptionResource subscriptionResource = HelperMethods.GetSubscriptionResource(client, subscriptionId);
-        // The bulk operation runs in this resource group's region (location is derived from the RG).
         ResourceGroupResource resourceGroupResource = await subscriptionResource.GetResourceGroupAsync(resourceGroupName);
 
         List<ResourceIdentifier> resourceIds = HelperMethods.BuildVmResourceIds(subscriptionId, resourceGroupName, vmNames);
@@ -44,13 +45,13 @@ public static class Program
         switch (scenario)
         {
             case "HibernateFallback":
-                await HibernateWithDeallocateFallback.RunAsync(resourceGroupResource, resourceIds);
+                await HibernateWithDeallocateFallback.RunAsync(resourceGroupResource, location, resourceIds);
                 break;
             case "StartFallback":
-                await StartWithCleanBootFallback.RunAsync(resourceGroupResource, resourceIds);
+                await StartWithCleanBootFallback.RunAsync(resourceGroupResource, location, resourceIds);
                 break;
             case "HibernateFallbackNoRetry":
-                await HibernateFallbackOnlyNoRetry.RunAsync(resourceGroupResource, resourceIds);
+                await HibernateFallbackOnlyNoRetry.RunAsync(resourceGroupResource, location, resourceIds);
                 break;
             default:
                 Console.WriteLine($"Unknown scenario: {scenario}");
